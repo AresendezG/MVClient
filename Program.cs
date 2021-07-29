@@ -62,13 +62,15 @@ namespace MVClient
             {
                 Console.WriteLine("Classifier Ready. Type [help] for Available Options");
                 user_opt = Console.ReadLine();
-
-                switch (user_opt)
+                user_opt = user_opt.ToLower();
+                img_path = MVSettings.Default.DefaultTestPath;
+                    switch (user_opt)
                 {
                     case "classify":
+                            bool DirectoryAvailable = Directory.Exists(img_path);
+                            int FilesInDir = Directory.GetFiles(img_path).Length;
 
-                            img_path = MVSettings.Default.DefaultTestPath;
-                            if (File.Exists(img_path))
+                            if (DirectoryAvailable && FilesInDir > 0)
                             {
                                 // Read the images on the path set by user:
                                 try
@@ -83,7 +85,7 @@ namespace MVClient
                             }
                             else
                             {
-                                Console.WriteLine("ERROR: Test Folder does not Exist");
+                                Console.WriteLine("ERROR: Test Folder does not Exist or is Empty");
                             }
                         break;
                     case "settings":
@@ -91,7 +93,11 @@ namespace MVClient
                         SF.ShowDialog();
                         Console.WriteLine("===  [Settings Saved] ====");
                         break;
-
+                     case "help":
+                            Console.WriteLine("Type [classify] to classify the image copied at:");
+                            Console.WriteLine(img_path);
+                            Console.WriteLine("Type [settings] to set up the default paths for the ML model and Test Path");
+                            break;
                    
                 }
 
