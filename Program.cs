@@ -53,22 +53,23 @@ namespace MVClient
                 // Load trained model
                 ITransformer trainedModel = mlContext.Model.Load(ModelPath, out modelSchema);
                 // Model Loaded
-                Console.WriteLine("--- Model Loaded. Type Classify to Test an Image ---");
-
-
+                Console.WriteLine("== Model Loaded. Using Model at: ");
+                Console.WriteLine(ModelPath);
+                
             string img_path;
 
-            while (user_opt != "exit")
+
+                while (user_opt != "exit")
             {
-                Console.WriteLine("Classifier Ready. Type [help] for Available Options");
+                Console.WriteLine("MotoVision>");
                 user_opt = Console.ReadLine();
                 user_opt = user_opt.ToLower();
                 img_path = MVSettings.Default.DefaultTestPath;
-                    switch (user_opt)
+                bool DirectoryAvailable = Directory.Exists(img_path);
+                int FilesInDir = Directory.GetFiles(img_path).Length;
+                switch (user_opt)
                 {
                     case "classify":
-                            bool DirectoryAvailable = Directory.Exists(img_path);
-                            int FilesInDir = Directory.GetFiles(img_path).Length;
 
                             if (DirectoryAvailable && FilesInDir > 0)
                             {
@@ -80,7 +81,7 @@ namespace MVClient
                                 }
                                 catch
                                 {
-                                    Console.WriteLine("ERROR During Classification Stage");
+                                    Console.WriteLine("ERROR: During Classification Stage");
                                 }
                             }
                             else
@@ -88,15 +89,41 @@ namespace MVClient
                                 Console.WriteLine("ERROR: Test Folder does not Exist or is Empty");
                             }
                         break;
-                    case "settings":
+
+                    case "simple_classify":
+                          DirectoryAvailable = Directory.Exists(img_path);
+                          FilesInDir = Directory.GetFiles(img_path).Length;
+
+                            if (DirectoryAvailable && FilesInDir > 0)
+                            {
+                                // Read the images on the path set by user:
+                                try
+                                {
+                                    IDataView ImgToTest_Prepared = PrepImageData(mlContext, img_path);
+                                    ClassifySimple(mlContext, ImgToTest_Prepared, trainedModel);
+                                }
+                                catch
+                                {
+                                    Console.WriteLine("ERROR During Classification Stage");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("ERROR: Test Folder does not Exist or is Empty");
+                            }
+                            break;
+
+                        case "settings":
                         SettingsForm SF = new SettingsForm();
                         SF.ShowDialog();
                         Console.WriteLine("===  [Settings Saved] ====");
                         break;
                      case "help":
-                            Console.WriteLine("Type [classify] to classify the image copied at:");
-                            Console.WriteLine(img_path);
-                            Console.WriteLine("Type [settings] to set up the default paths for the ML model and Test Path");
+                            PrintHelp(img_path);
+                            break;
+
+                        default:
+                            PrintHelp(img_path);
                             break;
                    
                 }
@@ -189,6 +216,13 @@ namespace MVClient
 
         }
 
+        private static void PredictionLabelOnly(ModelOutput prediction)
+        {
+            //string imageName = Path.GetFileName(prediction.ImagePath);
+            Console.WriteLine($"Label: {prediction.PredictedLabel}");
+
+        }
+
         public static void ClassifySingleImage(MLContext mlContext, IDataView data, ITransformer trainedModel)
         {
             PredictionEngine<ModelInput, ModelOutput> predictionEngine = mlContext.Model.CreatePredictionEngine<ModelInput, ModelOutput>(trainedModel);
@@ -198,6 +232,23 @@ namespace MVClient
             OutputPrediction(prediction);
         }
 
+        public static void ClassifySimple(MLContext mlContext, IDataView data, ITransformer trainedModel)
+        {
+            PredictionEngine<ModelInput, ModelOutput> predictionEngine = mlContext.Model.CreatePredictionEngine<ModelInput, ModelOutput>(trainedModel);
+            ModelInput image = mlContext.Data.CreateEnumerable<ModelInput>(data, reuseRowObject: true).First();
+            ModelOutput prediction = predictionEngine.Predict(image);
+            //Console.WriteLine("Classifying single image");
+            PredictionLabelOnly(prediction);
+        }
+
+
+        public static void PrintHelp(string img_path)
+        {
+            Console.WriteLine("Type [classify] to classify the image copied at:");
+            Console.WriteLine(img_path);
+            Console.WriteLine("Type [settings] to set up the default paths for the ML model and Test Path");
+            Console.WriteLine("Restart Software to load new Settings");
+        }
 
 
     }
